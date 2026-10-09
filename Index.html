@@ -1,0 +1,834 @@
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendaftaran Anggota - Volcano Lovers</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        volcano: {
+                            900: '#0c0707',
+                            800: '#1a0d0d',
+                            700: '#2d1111',
+                            magma: '#ff3b00',
+                            glow: '#ff6b00',
+                            ash: '#2a2424',
+                            amber: '#ffb700'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['Space Grotesk', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #080404;
+            color: #f3f4f6;
+            overflow-x: hidden;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Ember canvas background */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Custom Lava Glow Effects */
+        .lava-glow {
+            box-shadow: 0 0 25px rgba(255, 59, 0, 0.35), inset 0 0 15px rgba(255, 107, 0, 0.15);
+        }
+
+        .lava-glow-lg {
+            box-shadow: 0 0 50px rgba(255, 59, 0, 0.5), 0 0 100px rgba(255, 107, 0, 0.2);
+        }
+
+        .lava-border {
+            border: 1px solid rgba(255, 85, 0, 0.3);
+        }
+
+        .lava-border-active {
+            border: 2px solid #ff3b00;
+            box-shadow: 0 0 15px rgba(255, 59, 0, 0.4);
+        }
+
+        .lava-text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #ff8c00 50%, #ff2a00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d0707;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff3b00;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        @keyframes pulseLava {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+
+        .animate-pulse-lava {
+            animation: pulseLava 3s infinite ease-in-out;
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .animate-float {
+            animation: floatSlow 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen relative flex flex-col justify-between selection:bg-volcano-magma selection:text-white">
+
+    <!-- Canvas for Floating Lava Embers -->
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="relative z-10 container mx-auto px-4 py-6 max-w-6xl">
+        
+        <!-- HEADER SECTION -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 pb-6 border-b border-volcano-magma/30">
+            <div class="flex items-center gap-4 text-center md:text-left">
+                <div class="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 via-orange-600 to-yellow-500 p-0.5 lava-glow animate-float">
+                    <div class="w-full h-full bg-volcano-900 rounded-[14px] flex items-center justify-center text-3xl">
+                        🌋
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-black tracking-tight lava-text-gradient uppercase">
+                        VOLCANO LOVERS
+                    </h1>
+                    <p class="text-sm text-gray-400 font-medium flex items-center justify-center md:justify-start gap-2">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        Komunitas Pecinta Gunung Pasir WhatsApp
+                    </p>
+                </div>
+            </div>
+
+            <!-- Ambient Sound Toggle & Info Buttons -->
+            <div class="flex items-center gap-3">
+                <button id="soundToggleBtn" onclick="toggleAudio()" class="px-4 py-2.5 rounded-xl bg-volcano-800/80 hover:bg-volcano-700 lava-border text-xs font-semibold text-orange-300 flex items-center gap-2 transition duration-200">
+                    <i id="soundIcon" class="fa-solid fa-volume-xmark text-red-400"></i>
+                    <span id="soundText">Suara Erupsi: Off</span>
+                </button>
+                <button onclick="openInfoModal()" class="px-4 py-2.5 rounded-xl bg-volcano-magma/20 hover:bg-volcano-magma/40 border border-volcano-magma/50 text-xs font-semibold text-orange-200 flex items-center gap-2 transition duration-200">
+                    <i class="fa-solid fa-circle-info text-orange-400"></i>
+                    <span>Tipe Gunung?</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT LAYOUT -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- LEFT COLUMN: REGISTRATION FORM (7 cols) -->
+            <main class="lg:col-span-7 bg-volcano-800/60 backdrop-blur-md p-6 md:p-8 rounded-3xl lava-border lava-glow relative overflow-hidden">
+                <div class="absolute -top-24 -right-24 w-48 h-48 bg-orange-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
+                    <div>
+                        <span class="px-3 py-1 rounded-full text-[11px] font-bold tracking-wider bg-orange-500/20 text-orange-400 uppercase lava-border">
+                            FORMULIR RESMI
+                        </span>
+                        <h2 class="text-2xl font-bold mt-2 text-white">Biodata Gunung Pasir</h2>
+                    </div>
+                    <span class="text-xs text-gray-400 italic">Isi data di bawah ini bro!</span>
+                </div>
+
+                <form id="volcanoForm" onsubmit="handleFormSubmit(event)" class="space-y-5">
+                    
+                    <!-- 1. Nama Owner (Opsional) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
+                            <span><i class="fa-solid fa-user text-orange-500 mr-2"></i>Nama Owner</span>
+                            <span class="text-[10px] text-gray-400 font-normal uppercase bg-white/5 px-2 py-0.5 rounded">(Opsional)</span>
+                        </label>
+                        <input type="text" id="namaOwner" placeholder="Contoh: Bro Andi / Sultan Pasir" 
+                            class="w-full px-4 py-3 rounded-xl bg-volcano-900/90 border border-gray-700/80 text-white placeholder-gray-500 focus:outline-none focus:border-volcano-magma focus:ring-1 focus:ring-volcano-magma transition text-sm">
+                    </div>
+
+                    <!-- 2. Nama Gunung (WAJIB) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-orange-300 mb-1.5 flex items-center justify-between">
+                            <span><i class="fa-solid fa-volcano text-red-500 mr-2"></i>Nama Gunung Pasir <span class="text-red-500">*</span></span>
+                            <span class="text-[10px] text-red-400 font-bold uppercase bg-red-500/10 px-2 py-0.5 rounded">Wajib</span>
+                        </label>
+                        <input type="text" id="namaGunung" required placeholder="Contoh: Mt. Krakatau Mini / Gunung Merapi Pasir" 
+                            class="w-full px-4 py-3 rounded-xl bg-volcano-900/90 border border-volcano-magma/50 text-white placeholder-gray-500 focus:outline-none focus:border-volcano-magma focus:ring-2 focus:ring-volcano-magma/50 transition text-sm font-semibold">
+                    </div>
+
+                    <!-- 3. Umur Gunung & Pemilik -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
+                            <span><i class="fa-solid fa-hourglass-half text-amber-500 mr-2"></i>Umur Gunung & Pemilik</span>
+                            <span class="text-[10px] text-gray-400 font-normal uppercase bg-white/5 px-2 py-0.5 rounded">(Opsional)</span>
+                        </label>
+                        <input type="text" id="umurGunung" placeholder="cth: 3 hari / 1 minggu / 1 tahun" 
+                            class="w-full px-4 py-3 rounded-xl bg-volcano-900/90 border border-gray-700/80 text-white placeholder-gray-500 focus:outline-none focus:border-volcano-magma focus:ring-1 focus:ring-volcano-magma transition text-sm">
+                    </div>
+
+                    <!-- 4. Daerah / Lokasi -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
+                            <span><i class="fa-solid fa-location-dot text-red-400 mr-2"></i>Daerah / Lokasi</span>
+                            <span class="text-[10px] text-gray-400 font-normal uppercase bg-white/5 px-2 py-0.5 rounded">(Opsional)</span>
+                        </label>
+                        <input type="text" id="daerahLokasi" placeholder="Contoh: Bandung, Jawa Barat / Jogja" 
+                            class="w-full px-4 py-3 rounded-xl bg-volcano-900/90 border border-gray-700/80 text-white placeholder-gray-500 focus:outline-none focus:border-volcano-magma focus:ring-1 focus:ring-volcano-magma transition text-sm">
+                    </div>
+
+                    <!-- 5. Tipe Gunung (WAJIB) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-orange-300 mb-2 flex items-center justify-between">
+                            <span><i class="fa-solid fa-layer-group text-orange-500 mr-2"></i>Tipe Gunung Pasir <span class="text-red-500">*</span></span>
+                            <span class="text-[10px] text-red-400 font-bold uppercase bg-red-500/10 px-2 py-0.5 rounded">Wajib Pilih 1</span>
+                        </label>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Stratovolcano Card Option -->
+                            <label id="typeStratovolcano" onclick="selectVolcanoType('Stratovolcano')" class="cursor-pointer p-3.5 rounded-2xl bg-volcano-900/80 lava-border hover:bg-volcano-700/50 transition flex items-center gap-3 relative group">
+                                <input type="radio" name="tipeGunung" value="Stratovolcano" required class="hidden" id="radioStrato">
+                                <div class="w-10 h-10 rounded-xl bg-red-950/80 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition">
+                                    🌋
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-bold text-white">Stratovolcano</span>
+                                        <span id="checkStrato" class="text-volcano-magma opacity-0 transition"><i class="fa-solid fa-circle-check"></i></span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 leading-tight">Kerucut tinggi & berlapis pasiran tajam</p>
+                                </div>
+                            </label>
+
+                            <!-- Shield Card Option -->
+                            <label id="typeShield" onclick="selectVolcanoType('Shield')" class="cursor-pointer p-3.5 rounded-2xl bg-volcano-900/80 lava-border hover:bg-volcano-700/50 transition flex items-center gap-3 relative group">
+                                <input type="radio" name="tipeGunung" value="Shield" required class="hidden" id="radioShield">
+                                <div class="w-10 h-10 rounded-xl bg-orange-950/80 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition">
+                                    🛡️
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-bold text-white">Shield</span>
+                                        <span id="checkShield" class="text-volcano-magma opacity-0 transition"><i class="fa-solid fa-circle-check"></i></span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 leading-tight">Landai lebar seperti perisai perang</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 6. Foto Gunung (Opsional) Upload & Preview -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
+                            <span><i class="fa-solid fa-camera text-yellow-500 mr-2"></i>Foto Gunung Pasir</span>
+                            <span class="text-[10px] text-gray-400 font-normal uppercase bg-white/5 px-2 py-0.5 rounded">(Opsional)</span>
+                        </label>
+
+                        <div class="flex items-center gap-4">
+                            <label class="flex-1 border-2 border-dashed border-gray-700 hover:border-volcano-magma rounded-2xl p-4 text-center cursor-pointer bg-volcano-900/40 hover:bg-volcano-900/80 transition group">
+                                <input type="file" id="fotoGunungInput" accept="image/*" class="hidden" onchange="previewImage(event)">
+                                <div class="flex flex-col items-center justify-center gap-1">
+                                    <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400 group-hover:text-volcano-magma transition"></i>
+                                    <span class="text-xs text-gray-300 font-medium">Klik untuk upload foto gunung</span>
+                                    <span class="text-[10px] text-gray-500">(Bisa dikirim manual di WA nanti)</span>
+                                </div>
+                            </label>
+
+                            <!-- Image Preview Container -->
+                            <div id="imagePreviewBox" class="hidden relative w-20 h-20 rounded-2xl border border-volcano-magma/50 overflow-hidden bg-black shrink-0">
+                                <img id="imagePreview" src="" alt="Preview Gunung" class="w-full h-full object-cover">
+                                <button type="button" onclick="removeImage()" class="absolute top-1 right-1 bg-black/70 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                        <button type="submit" class="flex-1 py-3.5 px-6 rounded-xl bg-gradient-to-r from-red-600 via-volcano-magma to-orange-500 hover:from-red-500 hover:to-orange-400 text-white font-black tracking-wide text-sm shadow-lg lava-glow hover:scale-[1.01] active:scale-[0.99] transition duration-200 flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-lg"></i>
+                            <span>GENERATE & KIRIM KE WA</span>
+                        </button>
+                        <button type="button" onclick="resetForm()" class="px-5 py-3.5 rounded-xl bg-volcano-900 hover:bg-volcano-800 border border-gray-700 text-gray-400 hover:text-white text-xs font-semibold transition">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Reset
+                        </button>
+                    </div>
+
+                </form>
+            </main>
+
+            <!-- RIGHT COLUMN: MINI VIDEO SCREEN & LIVE OUTPUT (5 cols) -->
+            <aside class="lg:col-span-5 space-y-6">
+
+                <!-- MINI ERUPTION VIDEO DISPLAY -->
+                <div class="bg-volcano-800/80 backdrop-blur-md p-4 rounded-3xl lava-border lava-glow relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <span class="text-xs font-bold text-orange-400 tracking-wider flex items-center gap-2 uppercase">
+                            <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                            Live Cam / Visual Erupsi
+                        </span>
+                        <span class="text-[10px] text-gray-400 font-mono bg-black/40 px-2 py-0.5 rounded border border-white/5">VOLCANO-CAM HD</span>
+                    </div>
+
+                    <!-- Mini Video Player Frame -->
+                    <div class="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-volcano-magma/40 group">
+                        <!-- Procedural Eruption Canvas Video Fallback -->
+                        <canvas id="volcanoVideoCanvas" class="w-full h-full object-cover block"></canvas>
+                        
+                        <!-- Real HTML5 Video Eruption Overlay (if available online) -->
+                        <video id="eruptionVideo" class="absolute inset-0 w-full h-full object-cover opacity-90 mix-blend-screen" autoplay loop muted playsinline>
+                            <source src="https://assets.mixkit.co/videos/preview/mixkit-lava-erupting-from-a-volcano-41223-large.mp4" type="video/mp4">
+                        </video>
+
+                        <!-- HUD overlay on video -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none flex flex-col justify-between p-3">
+                            <div class="flex justify-between items-start">
+                                <span class="bg-red-600/80 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">● LIVE ERUPTION</span>
+                                <span id="cameraClock" class="font-mono text-[10px] text-amber-300 bg-black/60 px-2 py-0.5 rounded">00:00:00 UTC</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-gray-300">
+                                <span class="font-bold text-orange-400"><i class="fa-solid fa-temperature-full text-red-500 mr-1"></i>1,200°C</span>
+                                <span class="text-[10px] text-gray-400">Magma Stream Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIVE WHATSAPP TEXT GENERATOR PREVIEW -->
+                <div class="bg-volcano-800/80 backdrop-blur-md p-5 rounded-3xl lava-border relative">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-emerald-400 text-lg"></i>
+                            Preview Format WhatsApp
+                        </h3>
+                        <span class="text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded">Auto Update</span>
+                    </div>
+
+                    <!-- Format Box Container -->
+                    <div class="relative bg-volcano-900/90 rounded-2xl p-4 border border-gray-800 font-mono text-xs text-gray-200 leading-relaxed overflow-x-auto whitespace-pre-wrap select-all min-h-[160px]" id="previewOutput">
+                        <!-- Dynamic generated text will appear here -->
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="copyToClipboard()" class="flex-1 py-2.5 px-3 rounded-xl bg-volcano-700 hover:bg-volcano-600 border border-volcano-magma/40 text-xs font-semibold text-orange-200 transition flex items-center justify-center gap-2">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Salin Teks</span>
+                        </button>
+                        <button onclick="openWhatsAppDirect()" class="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-md">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>Kirim ke WA</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RECENT REGISTRATIONS SHOWCASE -->
+                <div class="bg-volcano-800/50 backdrop-blur-md p-5 rounded-3xl border border-white/5">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-users text-orange-500 mr-2"></i>Anggota Terbaru</span>
+                        <span id="memberCount" class="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded text-[10px]">3 Anggota</span>
+                    </h3>
+                    <div id="recentMembersList" class="space-y-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="mt-12 text-center text-xs text-gray-500 py-4 border-t border-white/5">
+            <p>🌋 Volcano Lovers WhatsApp Community &copy; 2026. Salam Erupsi Pasir Bro!</p>
+        </footer>
+
+    </div>
+
+    <!-- MODAL: Stratovolcano vs Shield Explanation -->
+    <div id="infoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-volcano-800 lava-border rounded-3xl max-w-md w-full p-6 relative lava-glow">
+            <button onclick="closeInfoModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-black lava-text-gradient mb-4">Panduan Tipe Gunung Pasir</h3>
+            
+            <div class="space-y-4 text-xs text-gray-300">
+                <div class="p-3 bg-volcano-900 rounded-2xl border border-red-500/30">
+                    <div class="font-bold text-orange-400 text-sm mb-1">🌋 Stratovolcano (Komposit)</div>
+                    <p class="text-gray-300 leading-relaxed">
+                        Gunung pasir dengan bentuk kerucut tinggi dan lereng curam. Terbuat dari tumpukan berlapis material pasir. Cocok buat yang bikin gunung pasir tinggi menjulang!
+                    </p>
+                </div>
+
+                <div class="p-3 bg-volcano-900 rounded-2xl border border-orange-500/30">
+                    <div class="font-bold text-amber-400 text-sm mb-1">🛡️ Shield Volcano (Perisai)</div>
+                    <p class="text-gray-300 leading-relaxed">
+                        Gunung pasir bertipe melebar dan landai seperti perisai pahlawan. Mengalir luas ke samping dengan puncak kawah membentang lebar.
+                    </p>
+                </div>
+            </div>
+
+            <button onclick="closeInfoModal()" class="mt-5 w-full py-2.5 rounded-xl bg-volcano-magma text-white font-bold text-xs">
+                Mengerti, Mantap!
+            </button>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition duration-300 pointer-events-none bg-volcano-800 text-white px-5 py-3 rounded-2xl lava-border lava-glow flex items-center gap-3 text-xs font-semibold shadow-2xl">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage">Pesan berhasil disalin!</span>
+    </div>
+
+    <!-- JS LOGIC AND CANVAS ANIMATION -->
+    <script>
+        
+        // State variables
+        let selectedType = '';
+        let uploadedImageData = null;
+        let isAudioPlaying = false;
+        let audioCtx = null;
+        let noiseNode = null;
+        let gainNode = null;
+
+        // Mock recent members
+        const mockMembers = [
+            { owner: 'Bro Farhan', volcano: 'Mt. Pasir Bromo', type: 'Stratovolcano', time: '10 mnt lalu' },
+            { owner: 'Sultan Pasir', volcano: 'Shield Of Pantai Selatan', type: 'Shield', time: '1 jam lalu' },
+            { owner: 'Rizky Sand', volcano: 'Krakatau Pasir Mini', type: 'Stratovolcano', time: '3 jam lalu' }
+        ];
+
+        window.onload = function() {
+            initEmberCanvas();
+            initVolcanoVideoCanvas();
+            renderRecentMembers();
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // Set default selections
+            selectVolcanoType('Stratovolcano');
+            updatePreviewText();
+
+            // Listen to input changes for live format preview
+            document.getElementById('namaOwner').addEventListener('input', updatePreviewText);
+            document.getElementById('namaGunung').addEventListener('input', updatePreviewText);
+            document.getElementById('umurGunung').addEventListener('input', updatePreviewText);
+            document.getElementById('daerahLokasi').addEventListener('input', updatePreviewText);
+        };
+
+        // Live Clock for Cam HUD
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toUTCString().split(' ')[4] + ' UTC';
+            const clockElem = document.getElementById('cameraClock');
+            if(clockElem) clockElem.innerText = timeStr;
+        }
+
+        // 1. Select Volcano Type
+        function selectVolcanoType(type) {
+            selectedType = type;
+            const stratoCard = document.getElementById('typeStratovolcano');
+            const shieldCard = document.getElementById('typeShield');
+            const checkStrato = document.getElementById('checkStrato');
+            const checkShield = document.getElementById('checkShield');
+            const radioStrato = document.getElementById('radioStrato');
+            const radioShield = document.getElementById('radioShield');
+
+            if (type === 'Stratovolcano') {
+                stratoCard.className = 'cursor-pointer p-3.5 rounded-2xl bg-volcano-900/90 lava-border-active transition flex items-center gap-3 relative group';
+                shieldCard.className = 'cursor-pointer p-3.5 rounded-2xl bg-volcano-900/50 lava-border hover:bg-volcano-700/50 transition flex items-center gap-3 relative group';
+                checkStrato.style.opacity = '1';
+                checkShield.style.opacity = '0';
+                radioStrato.checked = true;
+            } else {
+                shieldCard.className = 'cursor-pointer p-3.5 rounded-2xl bg-volcano-900/90 lava-border-active transition flex items-center gap-3 relative group';
+                stratoCard.className = 'cursor-pointer p-3.5 rounded-2xl bg-volcano-900/50 lava-border hover:bg-volcano-700/50 transition flex items-center gap-3 relative group';
+                checkShield.style.opacity = '1';
+                checkStrato.style.opacity = '0';
+                radioShield.checked = true;
+            }
+            updatePreviewText();
+        }
+
+        // 2. Format Generator for WhatsApp
+        function getFormattedText() {
+            const owner = document.getElementById('namaOwner').value.trim();
+            const gunung = document.getElementById('namaGunung').value.trim();
+            const umur = document.getElementById('umurGunung').value.trim();
+            const lokasi = document.getElementById('daerahLokasi').value.trim();
+
+            const isStratoChecked = selectedType === 'Stratovolcano';
+            const isShieldChecked = selectedType === 'Shield';
+
+            let text = `🌋 [ FORM PENDAFTARAN ANGGOTA VOLCANO LOVERS ] 🌋\n`;
+            text += `Yuk lengkapi biodata Gunung Pasir kamu di bawah ini bro!\n`;
+            text += `Nama Owner: ${owner ? owner : '(Opsional)'}\n`;
+            text += `Nama Gunung: ${gunung ? gunung : '[Isi Nama Gunung]'}\n`;
+            text += `Umur Gunung dan pemilik gunung: ${umur ? umur : '(Opsional)'}\n`;
+            text += `Foto Gunung: ${uploadedImageData ? '[Foto Terlampir Preview]' : '(Opsional - Kirim foto setelah isi form)'}\n`;
+            text += `Daerah/Lokasi: ${lokasi ? lokasi : '(Opsional)'}\n`;
+            text += `Tipe Gunung:\n`;
+            text += `[${isStratoChecked ? 'X' : ' '}] Stratovolcano\n`;
+            text += `[${isShieldChecked ? 'X' : ' '}] Shield`;
+
+            return text;
+        }
+
+        function updatePreviewText() {
+            const previewBox = document.getElementById('previewOutput');
+            previewBox.innerText = getFormattedText();
+        }
+
+        // 3. Image Upload Preview Handler
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImageData = e.target.result;
+                    document.getElementById('imagePreview').src = uploadedImageData;
+                    document.getElementById('imagePreviewBox').classList.remove('hidden');
+                    updatePreviewText();
+                    showToast("Foto berhasil diunggah!");
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage() {
+            uploadedImageData = null;
+            document.getElementById('fotoGunungInput').value = '';
+            document.getElementById('imagePreviewBox').classList.add('hidden');
+            updatePreviewText();
+        }
+
+
+        // 4. Form Submit Handler
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const gunung = document.getElementById('namaGunung').value.trim();
+            if (!gunung) {
+                showToast("Nama Gunung Wajib diisi!", true);
+                return;
+            }
+
+            // Add to mock recent list
+            const owner = document.getElementById('namaOwner').value.trim() || 'Bro Anonymous';
+            mockMembers.unshift({
+                owner: owner,
+                volcano: gunung,
+                type: selectedType,
+                time: 'Baru saja'
+            });
+            renderRecentMembers();
+
+            showToast("Formulir Siap! Membuka WhatsApp...");
+            
+            setTimeout(() => {
+                openWhatsAppDirect();
+            }, 800);
+        }
+
+        function renderRecentMembers() {
+            const container = document.getElementById('recentMembersList');
+            document.getElementById('memberCount').innerText = `${mockMembers.length} Anggota`;
+
+            container.innerHTML = mockMembers.slice(0, 4).map(m => `
+                <div class="p-2.5 rounded-xl bg-volcano-900/60 border border-white/5 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-volcano-magma/20 border border-volcano-magma/40 flex items-center justify-center text-xs">
+                            ${m.type === 'Stratovolcano' ? '🌋' : '🛡️'}
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">${m.volcano}</div>
+                            <div class="text-[10px] text-gray-400">By ${m.owner} • <span class="text-orange-400">${m.type}</span></div>
+                        </div>
+                    </div>
+                    <span class="text-[9px] text-gray-500 font-mono">${m.time}</span>
+                </div>
+            `).join('');
+        }
+
+        // 5. Copy & Share Functions
+        function copyToClipboard() {
+            const formattedText = getFormattedText();
+            const tempInput = document.createElement('textarea');
+            tempInput.value = formattedText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast("Teks berhasil disalin ke clipboard!");
+        }
+
+        function openWhatsAppDirect() {
+            const formattedText = getFormattedText();
+            const encodedText = encodeURIComponent(formattedText);
+            const waUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+            window.open(waUrl, '_blank');
+        }
+
+        function resetForm() {
+            document.getElementById('volcanoForm').reset();
+            removeImage();
+            selectVolcanoType('Stratovolcano');
+            showToast("Formulir telah di-reset");
+        }
+
+        // 6. Toast Notification
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            if (isError) {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-red-500 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // 7. Modal Handlers
+        function openInfoModal() {
+            document.getElementById('infoModal').classList.remove('hidden');
+        }
+        function closeInfoModal() {
+            document.getElementById('infoModal').classList.add('hidden');
+        }
+
+        // 8. Procedural Web Audio API for Eruption / Magma Rumble
+        function toggleAudio() {
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+
+            if (!isAudioPlaying) {
+                try {
+                    if (!audioCtx) {
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+
+                    // Create procedural magma rumble (low pass filtered white noise + sub oscillator)
+                    const bufferSize = audioCtx.sampleRate * 2;
+                    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+
+                    noiseNode = audioCtx.createBufferSource();
+                    noiseNode.buffer = noiseBuffer;
+                    noiseNode.loop = true;
+
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 180; // deep volcano rumble
+
+                    gainNode = audioCtx.createGain();
+                    gainNode.gain.value = 0.15;
+
+                    noiseNode.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+
+                    noiseNode.start();
+                    isAudioPlaying = true;
+
+                    icon.className = "fa-solid fa-volume-high text-emerald-400";
+                    text.innerText = "Suara Erupsi: On";
+                    showToast("Efek suara erupsi aktif 🌋");
+                } catch(e) {
+                    console.log("Audio play error", e);
+                }
+            } else {
+                if (noiseNode) {
+                    noiseNode.stop();
+                }
+                isAudioPlaying = false;
+                icon.className = "fa-solid fa-volume-xmark text-red-400";
+                text.innerText = "Suara Erupsi: Off";
+            }
+        }
+
+        // 9. Floating Embers Background Canvas
+        function initEmberCanvas() {
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            const embers = [];
+            const emberCount = 65;
+
+            for (let i = 0; i < emberCount; i++) {
+                embers.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 3 + 1,
+                    speedY: Math.random() * 1.5 + 0.5,
+                    speedX: (Math.random() - 0.5) * 0.8,
+                    opacity: Math.random() * 0.8 + 0.2,
+                    color: Math.random() > 0.4 ? '#ff3b00' : (Math.random() > 0.5 ? '#ffb700' : '#ff7700')
+                });
+            }
+
+            function animateEmbers() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Subtle bottom magma glow
+                const grad = ctx.createLinearGradient(0, canvas.height - 120, 0, canvas.height);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, 'rgba(255, 59, 0, 0.12)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
+
+                embers.forEach(p => {
+                    p.y -= p.speedY;
+                    p.x += p.speedX;
+
+                    if (p.y < -10) {
+                        p.y = canvas.height + 10;
+                        p.x = Math.random() * canvas.width;
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.opacity;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = p.color;
+                    ctx.fill();
+                });
+
+                ctx.globalAlpha = 1;
+                requestAnimationFrame(animateEmbers);
+            }
+
+            animateEmbers();
+        }
+
+        // 10. Mini Procedural Eruption Canvas inside Video Player (as backup / complementary dynamic artwork)
+        function initVolcanoVideoCanvas() {
+            const vCanvas = document.getElementById('volcanoVideoCanvas');
+            if(!vCanvas) return;
+            const vCtx = vCanvas.getContext('2d');
+
+            vCanvas.width = 320;
+            vCanvas.height = 180;
+
+            let particles = [];
+
+            function renderVideoCanvas() {
+                // Dark mountain silhouette
+                vCtx.fillStyle = '#0a0505';
+                vCtx.fillRect(0, 0, vCanvas.width, vCanvas.height);
+
+                // Mountain Peak
+                vCtx.beginPath();
+                vCtx.moveTo(40, 180);
+                vCtx.lineTo(160, 70);
+                vCtx.lineTo(280, 180);
+                vCtx.closePath();
+                vCtx.fillStyle = '#170c0c';
+                vCtx.fill();
+
+                // Crater Glow
+                const craterGrad = vCtx.createRadialGradient(160, 70, 2, 160, 70, 30);
+                craterGrad.addColorStop(0, '#ffff00');
+                craterGrad.addColorStop(0.4, '#ff3b00');
+                craterGrad.addColorStop(1, 'rgba(255,0,0,0)');
+                vCtx.fillStyle = craterGrad;
+                vCtx.beginPath();
+                vCtx.arc(160, 70, 30, 0, Math.PI * 2);
+                vCtx.fill();
+
+                // Spawn eruption particles
+                if (Math.random() < 0.6) {
+                    particles.push({
+                        x: 160 + (Math.random() - 0.5) * 12,
+                        y: 70,
+                        vx: (Math.random() - 0.5) * 3,
+                        vy: -(Math.random() * 3 + 2),
+                        size: Math.random() * 3 + 1.5,
+                        life: 1
+                    });
+                }
+
+                // Update & draw eruption particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.08; // gravity
+                    p.life -= 0.02;
+
+                    vCtx.beginPath();
+                    vCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    vCtx.fillStyle = p.life > 0.5 ? '#ffcc00' : '#ff3b00';
+                    vCtx.globalAlpha = Math.max(0, p.life);
+                    vCtx.fill();
+
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+                vCtx.globalAlpha = 1;
+
+                requestAnimationFrame(renderVideoCanvas);
+            }
+
+            renderVideoCanvas();
+        }
+    </script>
+</body>
+</html>
+```
